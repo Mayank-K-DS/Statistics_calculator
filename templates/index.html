@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistical Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            margin-bottom: 20px;
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-top: 15px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .flashes {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #ff9999;
+            color: #7f0000;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .histogram-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .tab-group {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        footer {
+            text-align: center;
+            padding: 15px;
+            background-color: #333;
+            color: white;
+            border-radius: 8px;
+            margin-top: auto;
+        }
+        footer a {
+            color: #7FDBFF;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Statistical Calculator</h1>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flashes">
+                    <ul>
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <div class="input-section">
+            <div class="tab-group">
+                <div class="tab active" onclick="openTab(event, 'manual-tab')">Manual Input</div>
+                <div class="tab" onclick="openTab(event, 'csv-column-tab')">CSV File</div>
+            </div>
+            
+            <div id="manual-tab" class="tab-content active">
+                <form method="POST" action="/">
+                    <input type="hidden" name="input_type" value="manual">
+                    <div class="input-group">
+                        <label for="manual_data">Enter comma-separated numbers:</label>
+                        <input type="text" id="manual_data" name="manual_data" placeholder="e.g., 1.2, 3.4, 5.6, 7.8, 9.0" required>
+                        <button type="submit">Calculate</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div id="csv-column-tab" class="tab-content">
+                <form method="POST" action="/" enctype="multipart/form-data">
+                    <input type="hidden" name="input_type" value="csv_column">
+                    <div class="input-group">
+                        <label for="csv_file_column">Upload CSV file:</label>
+                        <input type="file" id="csv_file_column" name="csv_file_column" accept=".csv" required>
+                        <label for="column_name">Column name:</label>
+                        <input type="text" id="column_name" name="column_name" placeholder="e.g., temperature" required>
+                        <button type="submit">Calculate</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if result %}
+            <div class="results">
+                <h2>Results</h2>
+                <table>
+                    <tr>
+                        <th>Statistic</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>Number of data points</td>
+                        <td>{{ result.count }}</td>
+                    </tr>
+                    <tr>
+                        <td>Mean</td>
+                        <td>{{ result.mean|format_float }}</td>
+                    </tr>
+                    <tr>
+                        <td>Variance</td>
+                        <td>{{ result.variance|format_float }}</td>
+                    </tr>
+                    <tr>
+                        <td>Standard Deviation</td>
+                        <td>{{ result.std_dev|format_float }}</td>
+                    </tr>
+                    <tr>
+                        <td>90% Confidence Interval</td>
+                        <td>({{ result.ci_90[0]|format_float }}, {{ result.ci_90[1]|format_float }})</td>
+                    </tr>
+                    <tr>
+                        <td>95% Confidence Interval</td>
+                        <td>({{ result.ci_95[0]|format_float }}, {{ result.ci_95[1]|format_float }})</td>
+                    </tr>
+                    <tr>
+                        <td>99% Confidence Interval</td>
+                        <td>({{ result.ci_99[0]|format_float }}, {{ result.ci_99[1]|format_float }})</td>
+                    </tr>
+                </table>
+                
+                <div class="histogram-container">
+                    <h3>Data Distribution</h3>
+                    <img src="{{ result.histogram }}" alt="Data histogram">
+                </div>
+                
+                <h3>Data Points</h3>
+                <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+                    {{ result.data|join(', ') }}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <footer>
+        <p>Statistical Calculator | Mayank Kumar 23117022</p>
+        <p>Created with Python Flask | All calculations performed without external statistical libraries</p>
+    </footer>
+    
+    <script>
+        function openTab(evt, tabName) {
+            // Hide all tab contents
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+            
+            // Deactivate all tabs
+            const tabs = document.getElementsByClassName("tab");
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+            
+            // Show the selected tab content and activate the tab
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
+</body>
+</html>
